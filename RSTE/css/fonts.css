@@ -1,0 +1,31 @@
+/* --- DM Mono Light (Weight 300) --- */
+@font-face {
+    font-family: 'DM Mono';
+    font-style: normal;
+    font-weight: 300;
+    src: url(../fonts/DMMono-Light.ttf) format('truetype');
+}
+
+/* --- DM Mono Regular (Weight 400) --- */
+@font-face {
+    font-family: 'DM Mono';
+    font-style: normal;
+    font-weight: 400;
+    src: url(../fonts/DMMono-Regular.ttf) format('truetype');
+}
+
+/* --- DM Mono Medium (Weight 500) --- */
+@font-face {
+    font-family: 'DM Mono';
+    font-style: normal;
+    font-weight: 500;
+    src: url(../fonts/DMMono-Medium.ttf) format('truetype');
+}
+
+/* --- Asciid Font for the Title --- */
+@font-face {
+    font-family: 'asciid';
+    font-style: normal;
+    font-weight: 400;
+    src: url(../fonts/asciid.ttf) format('truetype');
+}

@@ -1,0 +1,291 @@
+/* Theme colors */
+:root {
+    --font-main: 'DM Mono', monospace;
+    --bg-4: #1e1f22;
+    /* main background color */
+    --bg-3: #2b2d31;
+    /* for cards and panels */
+    --bg-2: #383a40;
+    /* borders, inputs, stuff like that */
+    --bg-1: #40434b;
+    /* hover states */
+
+    --text-1: #f2f2f2;
+    /* brightest text */
+    --text-2: #dbdee1;
+    /* titles, important text */
+    --text-3: #b8b9bf;
+    /* normal body text */
+    --text-4: #9499a0;
+    /* muted text */
+
+    --accent-main: #c8a8ff;
+    /* Light purple for ST Editor theming */
+    --accent-green: #248046;
+    --accent-cyan: #0891b2;
+    --accent-red: #a70f14;
+}
+
+body {
+    font-family: var(--font-main);
+    background-color: var(--bg-4);
+    color: var(--text-3);
+}
+
+/* ===== Particle Animation Styles ===== */
+.particle-header {
+    position: relative;
+    overflow: hidden;
+    background-color: #000;
+}
+
+.particles {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 0;
+}
+
+.particle {
+    position: absolute;
+    border-radius: 50%;
+    background: white;
+    animation: float infinite linear;
+}
+
+@keyframes float {
+    0% {
+        transform: translateY(0) translateX(0);
+        opacity: 1;
+    }
+
+    100% {
+        transform: translateY(-150px) translateX(-700px);
+        opacity: 0;
+    }
+}
+
+.particle-header h1 {
+    font-family: 'Asciid', var(--font-main);
+}
+
+/* Custom table input */
+.table-input {
+    background-color: var(--bg-2);
+    border: 2px solid var(--bg-1);
+    color: var(--text-2);
+    border-radius: 0;
+    padding: 0.25rem 0.5rem;
+    width: 100%;
+    transition: border-color 0.2s;
+}
+
+.table-input:focus {
+    outline: none;
+    border-color: var(--accent-main);
+}
+
+/* Custom buttons */
+.btn {
+    padding: 0.5rem 1rem;
+    font-weight: 500;
+    transition: background-color 0.2s, color 0.2s;
+    cursor: pointer;
+    border: none;
+    border-radius: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+}
+
+.btn-primary {
+    background-color: var(--accent-main);
+    color: var(--bg-4);
+}
+
+.btn-primary:hover {
+    background-color: white;
+}
+
+.btn-secondary {
+    background-color: var(--bg-1);
+    color: var(--text-1);
+}
+
+.btn-secondary:hover {
+    background-color: var(--bg-2);
+}
+
+.btn-danger {
+    background-color: var(--accent-red);
+    color: var(--text-1);
+}
+
+.btn-danger:hover {
+    opacity: 0.8;
+}
+
+.btn-success {
+    background-color: var(--accent-green);
+    color: white;
+}
+
+.btn-success:hover {
+    opacity: 0.8;
+}
+
+.btn-info {
+    background-color: var(--accent-cyan);
+    color: white;
+}
+
+.btn-info:hover {
+    opacity: 0.8;
+}
+
+/* ===== Drag and Drop Visuals ===== */
+.drag-handle {
+    cursor: grab;
+}
+
+.drag-handle:active {
+    cursor: grabbing;
+}
+
+.dragging {
+    opacity: 0.4;
+    background: var(--bg-1);
+}
+
+.drag-over-indicator td {
+    border-top: 2px solid var(--accent-main);
+}
+
+
+/* ===== Custom Scrollbar Styles ===== */
+::-webkit-scrollbar {
+    width: 12px;
+}
+
+::-webkit-scrollbar-track {
+    background: var(--bg-4);
+}
+
+::-webkit-scrollbar-thumb {
+    background-color: var(--bg-1);
+    border-radius: 20px;
+    border: 3px solid var(--bg-4);
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background-color: var(--accent-main);
+}
+
+html {
+    scrollbar-width: thin;
+    scrollbar-color: var(--bg-1) var(--bg-4);
+}
+
+.string-entry {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    padding: 0.75rem;
+    border-bottom: 1px solid var(--bg-2);
+}
+
+.string-key {
+    font-weight: 500;
+    color: var(--accent-main);
+    font-family: 'DM Mono', monospace;
+    word-break: break-all;
+    background: transparent;
+    border: none;
+    padding: 0;
+}
+
+.string-value {
+    color: var(--text-2);
+}
+
+.string-value-input {
+    background-color: var(--bg-2);
+    border: 2px solid var(--bg-1);
+    color: var(--text-2);
+    border-radius: 0;
+    width: 100%;
+    min-height: 0;
+    padding: 0.5rem;
+    resize: none;
+    overflow: hidden;
+    font-family: var(--font-main);
+    font-size: 14px;
+    line-height: 1.4;
+    transition: border-color 0.2s;
+}
+
+.string-value-input:focus {
+    outline: none;
+    border-color: var(--accent-main);
+}
+
+/* Overlay container for value highlighting */
+.string-value-container {
+    position: relative;
+    width: 100%;
+}
+
+.string-value-backdrop {
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    right: 2px;
+    bottom: 2px;
+    padding: 0.5rem;
+    font-family: var(--font-main);
+    font-size: 14px;
+    line-height: 1.4;
+    color: var(--text-2);
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    overflow: hidden;
+    pointer-events: none;
+}
+
+.string-value-container .string-value-input {
+    position: relative;
+    background: transparent;
+    color: transparent;
+    caret-color: var(--text-2);
+}
+
+.string-value-container .string-value-input::selection {
+    background: rgba(200, 168, 255, 0.3);
+}
+
+/* Search box */
+.search-box {
+    background-color: var(--bg-2);
+    border: 2px solid var(--bg-1);
+    color: var(--text-2);
+    border-radius: 0;
+    padding: 0.5rem 1rem;
+    width: 100%;
+    transition: border-color 0.2s;
+}
+
+.search-box:focus {
+    outline: none;
+    border-color: var(--accent-main);
+}
+
+/* Search highlight */
+.search-highlight {
+    background-color: rgba(255, 230, 0, 0.4);
+    color: inherit;
+    padding: 0 2px;
+    border-radius: 2px;
+}

@@ -1,0 +1,47 @@
+# Rust
+/target/
+**/*.rs.bk
+Cargo.lock
+
+# Node
+node_modules/
+dist/
+dist-workspace.toml
+build/
+.env
+.env.local
+.env.*.local
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Tauri
+/gen/
+src-tauri/target/
+
+# IDEs
+.vscode/
+.idea/
+.vs/
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+
+# OS
+.DS_Store
+Thumbs.db
+ehthumbs.db
+desktop.ini
+
+# Misc
+*.log
+backup/
+tmp/
+scripts/
+
+# WiX
+wix/**/*.wixobj
+wix/**/*.wixpdb
+wix/**/*.msi
+wix/**/*.cab

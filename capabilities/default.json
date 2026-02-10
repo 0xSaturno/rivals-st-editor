@@ -1,0 +1,59 @@
+{
+    "$schema": "../gen/schemas/desktop-schema.json",
+    "identifier": "default",
+    "description": "Capability for the main window",
+    "windows": [
+        "main"
+    ],
+    "permissions": [
+        "core:default",
+        "opener:default",
+        "dialog:default",
+        "fs:default",
+        "shell:default",
+        {
+            "identifier": "fs:allow-read-text-file",
+            "allow": [
+                {
+                    "path": "$TEMP/**"
+                },
+                {
+                    "path": "$APPDATA/**"
+                },
+                {
+                    "path": "**/*"
+                }
+            ]
+        },
+        {
+            "identifier": "fs:allow-read-dir",
+            "allow": [
+                {
+                    "path": "$TEMP/**"
+                },
+                {
+                    "path": "**/*"
+                }
+            ]
+        },
+        {
+            "identifier": "fs:allow-write-text-file",
+            "allow": [
+                {
+                    "path": "$TEMP/**"
+                },
+                {
+                    "path": "**/*"
+                }
+            ]
+        },
+        {
+            "identifier": "fs:allow-stat",
+            "allow": [
+                {
+                    "path": "**/*"
+                }
+            ]
+        }
+    ]
+}
