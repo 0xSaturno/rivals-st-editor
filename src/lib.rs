@@ -351,6 +351,17 @@ async fn convert_uasset_to_json(
         // Parse JSON response
         if let Ok(response) = serde_json::from_str::<serde_json::Value>(&stdout) {
             if response["success"].as_bool().unwrap_or(false) {
+                // UAssetTool writes JSON next to the uasset file (in data.path); move it to temp dir
+                let tool_json_path = response["data"]["path"]
+                    .as_str()
+                    .map(PathBuf::from)
+                    .unwrap_or_else(|| uasset_path_buf.with_extension("json"));
+                if tool_json_path.exists() && tool_json_path != json_path {
+                    fs::rename(&tool_json_path, &json_path)
+                        .or_else(|_| fs::copy(&tool_json_path, &json_path).map(|_| ()))
+                        .map_err(|e| format!("Failed to move JSON to temp dir: {}", e))?;
+                    let _ = fs::remove_file(&tool_json_path);
+                }
                 Ok(ConversionResult {
                     success: true,
                     json_path: Some(json_path.to_string_lossy().to_string()),

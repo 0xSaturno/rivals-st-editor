@@ -1,6 +1,6 @@
 [package]
 name = "rivals-st-editor"
-version = "0.7.0"
+version = "0.8.0"
 description = "A simple yet powerful web-based editor for batch editing StringTable assets in Marvel Rivals' mod files."
 authors = ["Saturn"]
 repository = "https://github.com/Saturn/Rivals-ST-Editor"
