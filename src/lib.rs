@@ -308,10 +308,22 @@ async fn convert_uasset_to_json(
             .map_err(|e| format!("Failed to create temp directory: {}", e))?;
     }
 
+    // Copy uasset (and .uexp if present) to temp dir so UAssetTool never writes
+    // next to the original files (which could overwrite user's JSON files)
+    let temp_uasset = temp_dir.join(uasset_path_buf.file_name().unwrap_or_default());
+    fs::copy(&uasset_path_buf, &temp_uasset)
+        .map_err(|e| format!("Failed to copy uasset to temp dir: {}", e))?;
+    let uexp_path = uasset_path_buf.with_extension("uexp");
+    if uexp_path.exists() {
+        let temp_uexp = temp_dir.join(uexp_path.file_name().unwrap_or_default());
+        fs::copy(&uexp_path, &temp_uexp)
+            .map_err(|e| format!("Failed to copy uexp to temp dir: {}", e))?;
+    }
+
     // Build JSON request for interactive mode
     let request = serde_json::json!({
         "action": "export_to_json",
-        "file_path": uasset_path,
+        "file_path": temp_uasset.to_string_lossy(),
         "usmap_path": usmap_path,
         "output_path": json_path.to_string_lossy()
     });
@@ -351,17 +363,23 @@ async fn convert_uasset_to_json(
         // Parse JSON response
         if let Ok(response) = serde_json::from_str::<serde_json::Value>(&stdout) {
             if response["success"].as_bool().unwrap_or(false) {
-                // UAssetTool writes JSON next to the uasset file (in data.path); move it to temp dir
+                // UAssetTool may write JSON next to the temp uasset; move it to expected path
                 let tool_json_path = response["data"]["path"]
                     .as_str()
                     .map(PathBuf::from)
-                    .unwrap_or_else(|| uasset_path_buf.with_extension("json"));
+                    .unwrap_or_else(|| temp_uasset.with_extension("json"));
                 if tool_json_path.exists() && tool_json_path != json_path {
                     fs::rename(&tool_json_path, &json_path)
                         .or_else(|_| fs::copy(&tool_json_path, &json_path).map(|_| ()))
                         .map_err(|e| format!("Failed to move JSON to temp dir: {}", e))?;
                     let _ = fs::remove_file(&tool_json_path);
                 }
+
+                // Clean up temp uasset/uexp copies
+                let _ = fs::remove_file(&temp_uasset);
+                let temp_uexp = temp_uasset.with_extension("uexp");
+                let _ = fs::remove_file(&temp_uexp);
+
                 Ok(ConversionResult {
                     success: true,
                     json_path: Some(json_path.to_string_lossy().to_string()),

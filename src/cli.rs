@@ -282,12 +282,24 @@ fn convert_uasset_to_json(
         return Err(format!("UAssetTool not found at: {:?}", tool_path));
     }
 
-    ensure_temp_dir()?;
+    let temp_dir = ensure_temp_dir()?;
     let json_path = get_temp_json_path(uasset_path);
+
+    // Copy uasset (and .uexp if present) to temp dir so UAssetTool never writes
+    // next to the original files (which could overwrite user's JSON files)
+    let temp_uasset = temp_dir.join(uasset_path.file_name().unwrap_or_default());
+    fs::copy(uasset_path, &temp_uasset)
+        .map_err(|e| format!("Failed to copy uasset to temp dir: {}", e))?;
+    let uexp_path = uasset_path.with_extension("uexp");
+    if uexp_path.exists() {
+        let temp_uexp = temp_dir.join(uexp_path.file_name().unwrap_or_default());
+        fs::copy(&uexp_path, &temp_uexp)
+            .map_err(|e| format!("Failed to copy uexp to temp dir: {}", e))?;
+    }
 
     let request = serde_json::json!({
         "action": "export_to_json",
-        "file_path": uasset_path.to_string_lossy(),
+        "file_path": temp_uasset.to_string_lossy(),
         "usmap_path": usmap_path,
         "output_path": json_path.to_string_lossy()
     });
@@ -331,6 +343,23 @@ fn convert_uasset_to_json(
     if output.status.success() {
         if let Ok(response) = serde_json::from_str::<serde_json::Value>(&stdout) {
             if response["success"].as_bool().unwrap_or(false) {
+                // UAssetTool may write JSON next to the temp uasset; move it to expected path
+                let tool_json_path = response["data"]["path"]
+                    .as_str()
+                    .map(PathBuf::from)
+                    .unwrap_or_else(|| temp_uasset.with_extension("json"));
+                if tool_json_path.exists() && tool_json_path != json_path {
+                    fs::rename(&tool_json_path, &json_path)
+                        .or_else(|_| fs::copy(&tool_json_path, &json_path).map(|_| ()))
+                        .map_err(|e| format!("Failed to move JSON to temp dir: {}", e))?;
+                    let _ = fs::remove_file(&tool_json_path);
+                }
+
+                // Clean up temp uasset/uexp copies
+                let _ = fs::remove_file(&temp_uasset);
+                let temp_uexp = temp_uasset.with_extension("uexp");
+                let _ = fs::remove_file(&temp_uexp);
+
                 // Verify the generated file is not empty
                 match fs::metadata(&json_path) {
                     Ok(metadata) => {
@@ -488,6 +517,18 @@ fn extract_asset_from_paks(
     if output.status.success() {
         if let Ok(response) = serde_json::from_str::<serde_json::Value>(&stdout) {
             if response["success"].as_bool().unwrap_or(false) {
+                // UAssetTool may write the file somewhere else; move it to expected path
+                let tool_output = response["data"]["path"]
+                    .as_str()
+                    .map(PathBuf::from);
+                if let Some(ref tool_path_buf) = tool_output {
+                    if tool_path_buf.exists() && *tool_path_buf != output_path {
+                        fs::rename(tool_path_buf, &output_path)
+                            .or_else(|_| fs::copy(tool_path_buf, &output_path).map(|_| ()))
+                            .map_err(|e| format!("Failed to move extracted asset to temp dir: {}", e))?;
+                        let _ = fs::remove_file(tool_path_buf);
+                    }
+                }
                 if output_path.exists() {
                     println!("{}  {}", "[CLI]".cyan(), "Extracted successfully!".green());
                     return Ok(output_path);
