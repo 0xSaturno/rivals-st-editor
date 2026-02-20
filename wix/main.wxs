@@ -69,7 +69,7 @@
 
         <Package Id='*'
             Keywords='Installer'
-            Description='A simple yet powerful web-based editor for batch editing StringTable assets in Marvel Rivals&#39; mod files.'
+            Description='A simple yet powerful desktop editor for batch editing StringTable assets in Marvel Rivals&#39; mod files.'
             Manufacturer='Saturn'
             InstallerVersion='450'
             Languages='1033'

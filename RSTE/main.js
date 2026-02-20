@@ -585,7 +585,7 @@ function App() {
 
     return (
         <div className="p-4 md:p-8">
-            <header className="relative group p-4 border-2 particle-header mb-8" style={{ borderColor: 'var(--bg-2)' }}>
+            <header className="relative group p-4 border-2 particle-header mb-8" style={{ borderColor: 'var(--bg-2)', userSelect: 'none' }}>
                 <Particles />
                 <div className="absolute inset-0 border-2 pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity" style={{ borderColor: 'var(--accent-main)', zIndex: 2 }}></div>
                 <div className="flex justify-between items-center w-full relative" style={{ zIndex: 1 }}>

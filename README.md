@@ -4,7 +4,7 @@
 [![Issues](https://img.shields.io/github/issues/0xSaturno/rivals-st-editor.svg?style=flat-square)](https://github.com/0xSaturno/rivals-st-editor/issues)
 [![CI Status](https://img.shields.io/github/actions/workflow/status/0xSaturno/rivals-st-editor/release.yml?label=CI)](https://github.com/0xSaturno/rivals-st-editor/actions)
 
-A simple yet powerful web-based editor for batch editing StringTable assets in Marvel Rivals' mod files.
+A simple yet powerful desktop editor for batch editing StringTable assets in Marvel Rivals' mod files.
 
 ## **✨ Features**
 
@@ -29,7 +29,6 @@ A simple yet powerful web-based editor for batch editing StringTable assets in M
   * Settings persist across sessions via `%APPDATA%\rivals-st-editor\settings.json`.
 * **Extra App Controls**:
   * `Ctrl + Mouse scroll wheel` to scale the app UI.
-  * `F5` to reset the app.
 
 ## **📝 ST Editor Usage**
 
