@@ -1,4 +1,4 @@
-# Marvel Rivals Locres Reader
+# Locres Reader
 
 A C# console application using CUE4Parse to read and extract `.locres` localization files from Marvel Rivals pak files.
 
@@ -42,7 +42,7 @@ copy oo2core_9_win64.dll publish\
 Send JSON configuration via stdin, receive locres JSON via stdout:
 
 ```bash
-echo '{"UsmapPath": "C:\\path\\to\\usmap.usmap"}' | MarvelRivalsLocresReader.exe
+echo '{"UsmapPath": "C:\\path\\to\\usmap.usmap"}' | LocresReader.exe
 ```
 
 ### JSON Input Format
@@ -74,7 +74,7 @@ import json
 
 config = {"UsmapPath": "C:\\path\\to\\usmap.usmap"}
 result = subprocess.run(
-    ["MarvelRivalsLocresReader.exe"],
+    ["LocresReader.exe"],
     input=json.dumps(config),
     capture_output=True,
     text=True

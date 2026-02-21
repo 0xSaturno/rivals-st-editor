@@ -614,7 +614,7 @@ async fn read_locres_data(
         .join("bin")
         .join("Release")
         .join("net9.0")
-        .join("MarvelRivalsLocresReader.exe");
+        .join("LocresReader.exe");
 
     let exe_path = if dev_exe.exists() {
         dev_exe
@@ -623,7 +623,7 @@ async fn read_locres_data(
         let publish_exe = cwd
             .join("LocresReader")
             .join("publish")
-            .join("MarvelRivalsLocresReader.exe");
+            .join("LocresReader.exe");
 
         if publish_exe.exists() {
             publish_exe
@@ -633,7 +633,7 @@ async fn read_locres_data(
                 .resource_dir()
                 .unwrap_or_default()
                 .join("tools")
-                .join("MarvelRivalsLocresReader.exe")
+                .join("LocresReader.exe")
         }
     };
 

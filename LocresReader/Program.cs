@@ -8,7 +8,7 @@ using CUE4Parse.UE4.Objects.Core.Misc;
 using CUE4Parse.UE4.Versions;
 using Newtonsoft.Json;
 
-namespace MarvelRivalsLocresReader;
+namespace LocresReader;
 
 public class InputConfig
 {

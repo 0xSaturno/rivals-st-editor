@@ -1,7 +1,7 @@
 {
     "$schema": "https://schema.tauri.app/config/2",
     "productName": "rivals-st-editor",
-    "version": "0.8.3",
+    "version": "0.9.0",
     "identifier": "com.rivals-st-editor.saturn",
     "build": {
         "frontendDist": "./RSTE"
@@ -34,7 +34,7 @@
             "./RSTE/fonts": "fonts",
             "./RSTE/js": "js",
             "./UassetToolRivals/src/UAssetTool/bin/Release/net8.0/win-x64/publish/UAssetTool.exe": "tools/UAssetTool.exe",
-            "./LocresReader/publish_single/MarvelRivalsLocresReader.exe": "tools/MarvelRivalsLocresReader.exe",
+            "./LocresReader/publish_single/LocresReader.exe": "tools/LocresReader.exe",
             "./LocresReader/publish_single/oo2core_9_win64.dll": "tools/oo2core_9_win64.dll"
         }
     }

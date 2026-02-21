@@ -42,7 +42,7 @@ jobs:
       # ── Build LocresReader ──
       - name: Build LocresReader
         run: |
-          dotnet publish LocresReader/MarvelRivalsLocresReader.csproj `
+          dotnet publish LocresReader/LocresReader.csproj `
             -c Release `
             -r win-x64 `
             --self-contained true `
@@ -95,7 +95,7 @@ jobs:
 
           # Copy external tools (spawned as separate processes at runtime)
           Copy-Item "UassetToolRivals/src/UAssetTool/bin/Release/net8.0/win-x64/publish/UAssetTool.exe" -Destination "$stagingDir/tools/"
-          Copy-Item "LocresReader/publish_single/MarvelRivalsLocresReader.exe" -Destination "$stagingDir/tools/"
+          Copy-Item "LocresReader/publish_single/LocresReader.exe" -Destination "$stagingDir/tools/"
           $dll = "LocresReader/publish_single/oo2core_9_win64.dll"
           if (Test-Path $dll) {
             Copy-Item $dll -Destination "$stagingDir/tools/"
