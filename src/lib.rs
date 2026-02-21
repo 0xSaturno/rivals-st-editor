@@ -766,6 +766,62 @@ async fn read_locres_data(
     Ok(locres_data)
 }
 
+/// Extract all StringTable assets from game paks using UAssetTool extract_iostore_legacy
+#[tauri::command]
+async fn extract_string_tables(
+    app: AppHandle,
+    output_dir: String,
+    state: State<'_, AppState>,
+) -> Result<String, String> {
+    let paks_path = {
+        let settings = state.settings.lock().unwrap();
+        settings.rivals_pak_path.clone()
+    }
+    .ok_or("Rivals Paks path not set. Please configure it in settings.")?;
+
+    let tool_path = get_new_uasset_tool_path(&app);
+    if !tool_path.exists() {
+        return Err(format!("UAssetTool not found at: {:?}", tool_path));
+    }
+
+    let output_path = PathBuf::from(&output_dir);
+    fs::create_dir_all(&output_path)
+        .map_err(|e| format!("Failed to create output directory: {}", e))?;
+
+    println!("[ExtractST] Extracting StringTables from: {}", paks_path);
+    println!("[ExtractST] Output: {}", output_dir);
+
+    let mut cmd = Command::new(&tool_path);
+    #[cfg(target_os = "windows")]
+    cmd.creation_flags(0x08000000); // CREATE_NO_WINDOW
+    cmd.arg("extract_iostore_legacy")
+        .arg(&paks_path)
+        .arg(&output_dir)
+        .arg("--filter")
+        .arg("Marvel/Data/StringTable/")
+        .stdout(std::process::Stdio::piped())
+        .stderr(std::process::Stdio::piped());
+
+    let output = cmd
+        .output()
+        .await
+        .map_err(|e| format!("Failed to run UAssetTool: {}", e))?;
+
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    let stderr = String::from_utf8_lossy(&output.stderr);
+
+    println!("[ExtractST] stdout: {}", stdout);
+    if !stderr.is_empty() {
+        println!("[ExtractST] stderr: {}", stderr);
+    }
+
+    if !output.status.success() {
+        return Err(format!("Extraction failed:\n{}\n{}", stdout, stderr));
+    }
+
+    Ok(output_dir)
+}
+
 // ============================================================================
 // APP INITIALIZATION
 // ============================================================================
@@ -795,6 +851,7 @@ pub fn run() {
             open_temp_folder,
             get_temp_json_path_for_uasset,
             read_locres_data,
+            extract_string_tables,
         ])
         .build(tauri::generate_context!())
         .expect("error while building tauri application")

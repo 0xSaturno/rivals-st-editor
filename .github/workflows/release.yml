@@ -49,13 +49,18 @@ jobs:
             -p:PublishSingleFile=true `
             -o LocresReader/publish_single
 
-      - name: Copy oo2core DLL
+      - name: Download oo2core DLL
+        shell: pwsh
         run: |
-          $dll = "LocresReader/bin/Release/net9.0/oo2core_9_win64.dll"
-          if (Test-Path $dll) {
-            Copy-Item $dll -Destination "LocresReader/publish_single/" -Force
+          $url  = "https://github.com/new-world-tools/go-oodle/releases/download/v0.2.3-files/oo2core_9_win64.dll"
+          $dest = "LocresReader/publish_single/oo2core_9_win64.dll"
+          Write-Host "Downloading Oodle DLL from $url"
+          Invoke-WebRequest -Uri $url -OutFile $dest -UseBasicParsing
+          if (Test-Path $dest) {
+            Write-Host "oo2core_9_win64.dll downloaded successfully"
           } else {
-            Write-Host "::warning::oo2core_9_win64.dll not found at $dll — it may need to be manually included"
+            Write-Error "Failed to download oo2core_9_win64.dll"
+            exit 1
           }
 
       # ── Rust toolchain ──
