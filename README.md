@@ -24,6 +24,7 @@ A simple yet powerful desktop editor for batch editing StringTable assets in Mar
 * **Automated Uasset Processing**: Includes UAssetTool to directly convert `.uasset` files for the editor.
 * **File Collision Detection**: Smart merge dialog when dropping a file that's already loaded, showing diff stats with options to replace or merge changes.
 * **CLI Support**: Full command-line interface for batch processing, project creation, and mod packaging without opening the GUI. See [CLI_USAGE.md](CLI_USAGE.md) for details.
+* **Extract ST Assets from Game**: One-click extraction of vanilla StringTable assets from game paks.
 * **Configurable Settings**:
   * USMAP path, locres language selection, and backup toggle.
   * Settings persist across sessions via `%APPDATA%\rivals-st-editor\settings.json`.
@@ -33,7 +34,7 @@ A simple yet powerful desktop editor for batch editing StringTable assets in Mar
 ## **📝 ST Editor Usage**
 
 1. **Launch the `Rivals ST Editor.exe` app**.
-2. **Configure Settings**: Set your USMAP path on first launch (required for `.uasset` conversion).
+2. **Configure Settings**: Set your USMAP and game path on first launch.
 3. **Load your StringTable files** by dragging `.uasset` or `.json` files into the import area.
 4. **Edit the string values** directly in the table. Use the search bar to find specific entries.
 5. **Save your files** by clicking "Save Asset" for uasset output, or "Save & Package Mod" to create a ready-to-play pak.
