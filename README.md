@@ -39,7 +39,9 @@ A simple yet powerful desktop editor for batch editing StringTable assets in Mar
 4. **Edit the string values** directly in the table. Use the search bar to find specific entries.
 5. **Save your files** by clicking "Save Asset" for uasset output, or "Save & Package Mod" to create a ready-to-play pak.
 
-
+## 📥 Download
+### [⬇️ Download Latest Release Here](https://github.com/0xSaturno/rivals-st-editor/releases/latest)
+---
 ### ℹ️ acknowledgements
 - [UassetToolRivals](https://github.com/XzantGaming/UAssetToolRivals): included in this software as requirement for asset conversion and mod bundling
 - LocresReader: included for localization data extraction, developed by [Xzant](https://github.com/XzantGaming) exclusively for this editor
