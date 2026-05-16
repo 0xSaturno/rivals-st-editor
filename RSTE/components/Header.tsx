@@ -24,7 +24,7 @@ export function Header({ onShowSettings, resetButtonRef, onResetPress, onResetRe
                     <img src="./assets/saturn-logo.svg" alt="Logo" className="h-24 filter brightness-0 invert" />
                     <div className="flex items-baseline gap-3">
                         <h1 className="text-5xl font-normal" style={{ color: 'var(--text-1)' }}>Rivals ST Editor</h1>
-                        <h2 className="text-1xl font-medium" style={{ color: 'var(--text-4)' }}>v1.0.0</h2>
+                        <h2 className="text-1xl font-medium" style={{ color: 'var(--text-4)' }}>v1.1.0</h2>
                     </div>
                 </div>
                 <div className="flex flex-col items-end" style={{ gap: '3rem' }}>

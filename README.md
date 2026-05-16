@@ -42,6 +42,10 @@ A simple yet powerful desktop editor for batch editing StringTable assets in Mar
 ## 📥 Download
 ### [⬇️ Download Latest Release Here](https://github.com/0xSaturno/rivals-st-editor/releases/latest)
 ---
+### **🧱 Requirements**
+To run the background asset extraction and parsing tool UAssetTool, you must have the **.NET 8.0 Runtime** installed on your system.
+* [Download .NET 8.0 Desktop Runtime (x64)](https://dotnet.microsoft.com/en-us/download/dotnet/thank-you/runtime-desktop-8.0.26-windows-x64-installer)
+---
+
 ### ℹ️ acknowledgements
-- [UassetToolRivals](https://github.com/XzantGaming/UAssetToolRivals): included in this software as requirement for asset conversion and mod bundling
-- LocresReader: included for localization data extraction, developed by [Xzant](https://github.com/XzantGaming) exclusively for this editor
+- [UassetToolRivals](https://github.com/XzantGaming/UAssetToolRivals): included in this software as requirement for asset conversion, locres parsing and mod bundling
