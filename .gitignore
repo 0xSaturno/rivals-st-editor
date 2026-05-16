@@ -22,9 +22,6 @@ yarn-error.log*
 src-tauri/target/
 
 # IDEs
-.vscode/
-.idea/
-.vs/
 *.suo
 *.user
 *.userosscache
@@ -47,3 +44,6 @@ wix/**/*.wixobj
 wix/**/*.wixpdb
 wix/**/*.msi
 wix/**/*.cab
+
+# Tools
+LocresReader/

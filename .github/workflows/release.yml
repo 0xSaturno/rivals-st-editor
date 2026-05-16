@@ -17,16 +17,11 @@ jobs:
         with:
           submodules: recursive
 
-      # ── .NET SDK (covers both net8.0 for UAssetTool and net9.0 for LocresReader) ──
+      # ── .NET SDK ──
       - name: Setup .NET 8
         uses: actions/setup-dotnet@v4
         with:
           dotnet-version: "8.x"
-
-      - name: Setup .NET 9
-        uses: actions/setup-dotnet@v4
-        with:
-          dotnet-version: "9.x"
 
       # ── Build UAssetTool ──
       - name: Build UAssetTool
@@ -34,34 +29,9 @@ jobs:
           dotnet publish UassetToolRivals/src/UAssetTool/UAssetTool.csproj `
             -c Release `
             -r win-x64 `
-            --self-contained true `
+            --self-contained false `
             -p:PublishSingleFile=true `
-            -p:IncludeNativeLibrariesForSelfExtract=true `
             -o UassetToolRivals/src/UAssetTool/bin/Release/net8.0/win-x64/publish
-
-      # ── Build LocresReader ──
-      - name: Build LocresReader
-        run: |
-          dotnet publish LocresReader/LocresReader.csproj `
-            -c Release `
-            -r win-x64 `
-            --self-contained true `
-            -p:PublishSingleFile=true `
-            -o LocresReader/publish_single
-
-      - name: Download oo2core DLL
-        shell: pwsh
-        run: |
-          $url  = "https://github.com/new-world-tools/go-oodle/releases/download/v0.2.3-files/oo2core_9_win64.dll"
-          $dest = "LocresReader/publish_single/oo2core_9_win64.dll"
-          Write-Host "Downloading Oodle DLL from $url"
-          Invoke-WebRequest -Uri $url -OutFile $dest -UseBasicParsing
-          if (Test-Path $dest) {
-            Write-Host "oo2core_9_win64.dll downloaded successfully"
-          } else {
-            Write-Error "Failed to download oo2core_9_win64.dll"
-            exit 1
-          }
 
       # ── Node.js (frontend build via Vite) ──
       - name: Setup Node.js
@@ -104,11 +74,6 @@ jobs:
 
           # Copy external tools (spawned as separate processes at runtime)
           Copy-Item "UassetToolRivals/src/UAssetTool/bin/Release/net8.0/win-x64/publish/UAssetTool.exe" -Destination "$stagingDir/tools/"
-          Copy-Item "LocresReader/publish_single/LocresReader.exe" -Destination "$stagingDir/tools/"
-          $dll = "LocresReader/publish_single/oo2core_9_win64.dll"
-          if (Test-Path $dll) {
-            Copy-Item $dll -Destination "$stagingDir/tools/"
-          }
 
           # Include documentation
           Copy-Item "CLI_USAGE.md" -Destination $stagingDir -ErrorAction SilentlyContinue

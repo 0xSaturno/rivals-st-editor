@@ -31,9 +31,7 @@
             "./build/icon.ico"
         ],
         "resources": {
-            "./UassetToolRivals/src/UAssetTool/bin/Release/net8.0/win-x64/publish/UAssetTool.exe": "tools/UAssetTool.exe",
-            "./LocresReader/publish_single/LocresReader.exe": "tools/LocresReader.exe",
-            "./LocresReader/publish_single/oo2core_9_win64.dll": "tools/oo2core_9_win64.dll"
+            "./UassetToolRivals/src/UAssetTool/bin/Release/net8.0/win-x64/publish/UAssetTool.exe": "tools/UAssetTool.exe"
         }
     }
 }

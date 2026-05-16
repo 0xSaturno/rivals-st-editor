@@ -587,183 +587,153 @@ fn get_temp_json_path_for_uasset(uasset_path: String) -> Result<String, String> 
 
     Ok(json_path.to_string_lossy().to_string())
 }
-/// Read locres data from game paks using the LocresReader tool
+/// Read locres data from game paks using UAssetTool's native locres support.
+/// Extracts Game.locres from `pakchunkLocres-Windows.pak` via `extract_pak`,
+/// then parses it via `parse_locres`.
 #[tauri::command]
 async fn read_locres_data(
     app: AppHandle,
     state: State<'_, AppState>,
 ) -> Result<serde_json::Value, String> {
-    let (usmap_path, paks_path) = {
+    let (paks_path, language) = {
         let settings = state.settings.lock().unwrap();
         (
-            settings.usmap_path.clone(),
             settings.rivals_pak_path.clone(),
+            settings.locres_language.clone(),
         )
     };
 
-    // Validate settings
-    let usmap = usmap_path.ok_or("USMAP path not configured")?;
     let paks = paks_path.ok_or("Rivals Paks path not configured")?;
+    let tool_path = get_new_uasset_tool_path(&app);
+    if !tool_path.exists() {
+        return Err(format!("UAssetTool not found at: {:?}", tool_path));
+    }
 
-    // Find LocresReader executable
-    let cwd = std::env::current_dir().unwrap_or_default();
+    println!("[LocresRead] UAssetTool: {:?}", tool_path);
+    println!("[LocresRead] Paks: {}", paks);
+    println!("[LocresRead] Language: {}", language);
 
-    // Try dev path first
-    let dev_exe = cwd
-        .join("LocresReader")
-        .join("bin")
-        .join("Release")
-        .join("net9.0")
-        .join("LocresReader.exe");
+    // Temp dir for extracted locres
+    let locres_temp = get_temp_dir().join("locres");
+    fs::create_dir_all(&locres_temp)
+        .map_err(|e| format!("Failed to create temp dir: {}", e))?;
 
-    let exe_path = if dev_exe.exists() {
-        dev_exe
-    } else {
-        // Try publish path
-        let publish_exe = cwd
-            .join("LocresReader")
-            .join("publish")
-            .join("LocresReader.exe");
-
-        if publish_exe.exists() {
-            publish_exe
-        } else {
-            // Try bundled resource
-            app.path()
-                .resource_dir()
-                .unwrap_or_default()
-                .join("tools")
-                .join("LocresReader.exe")
-        }
-    };
-
-    if !exe_path.exists() {
+    // Locres lives in a dedicated pak
+    let locres_pak = PathBuf::from(&paks).join("pakchunkLocres-Windows.pak");
+    if !locres_pak.exists() {
         return Err(format!(
-            "LocresReader not found at: {:?}. Please build it first.",
-            exe_path
+            "Locres pak not found: {:?}. Ensure the Rivals Paks path is correct.",
+            locres_pak
         ));
     }
 
-    println!("[LocresReader] Using executable: {:?}", exe_path);
-    println!("[LocresReader] USMAP: {}", usmap);
-    println!("[LocresReader] Paks: {}", paks);
+    let locres_filter = "Game.locres";
+    // Default Marvel Rivals AES key (same as extract_iostore_legacy default)
+    let aes_key = "0C263D8C22DCB085894899C3A3796383E9BF9DE0CBFB08C9BF2DEF2E84F29D74";
 
-    // Get the selected language from settings
-    let language = {
-        let settings = state.settings.lock().unwrap();
-        settings.locres_language.clone()
-    };
+    println!("[LocresRead] Extracting from: {:?}", locres_pak);
 
-    // Build JSON config
-    let config = serde_json::json!({
-        "UsmapPath": usmap,
-        "PaksDirectory": paks,
-        "LocresPath": format!("Marvel/Content/Localization/Game/{}/Game.locres", language),
-    });
-
-    let config_str = serde_json::to_string(&config).map_err(|e| e.to_string())?;
-    println!("[LocresReader] Config: {}", config_str);
-
-    // Run the LocresReader
-    let mut cmd = Command::new(&exe_path);
+    let mut cmd = Command::new(&tool_path);
     #[cfg(target_os = "windows")]
     cmd.creation_flags(0x08000000); // CREATE_NO_WINDOW
-
-    cmd.stdin(std::process::Stdio::piped())
+    cmd.arg("extract_pak")
+        .arg(&locres_pak)
+        .arg(&locres_temp)
+        .arg("--filter")
+        .arg(locres_filter)
+        .arg("--aes")
+        .arg(aes_key)
         .stdout(std::process::Stdio::piped())
         .stderr(std::process::Stdio::piped());
 
-    let mut child = cmd.spawn().map_err(|e| e.to_string())?;
-
-    // Write config to stdin
-    if let Some(mut stdin) = child.stdin.take() {
-        use tokio::io::AsyncWriteExt;
-        stdin
-            .write_all(config_str.as_bytes())
-            .await
-            .map_err(|e| e.to_string())?;
-        stdin.write_all(b"\n").await.map_err(|e| e.to_string())?;
-        stdin.flush().await.map_err(|e| e.to_string())?;
+    let extract_out = cmd.output().await.map_err(|e| e.to_string())?;
+    let extract_stderr = String::from_utf8_lossy(&extract_out.stderr);
+    if !extract_stderr.is_empty() {
+        println!("[LocresRead] extract_pak stderr:\n{}", extract_stderr);
+    }
+    if !extract_out.status.success() {
+        return Err(format!("extract_pak failed (code {:?}):\n{}", extract_out.status.code(), extract_stderr));
     }
 
-    let output = child.wait_with_output().await.map_err(|e| e.to_string())?;
+    let locres_file = find_locres_file(&locres_temp, &language).ok_or_else(|| {
+        format!(
+            "Game.locres for language '{}' not found after extraction.",
+            language
+        )
+    })?;
 
+    println!("[LocresRead] Parsing: {:?}", locres_file);
+
+    // Parse with UAT's native FTextLocalizationResource
+    let mut cmd = Command::new(&tool_path);
+    #[cfg(target_os = "windows")]
+    cmd.creation_flags(0x08000000); // CREATE_NO_WINDOW
+    cmd.arg("parse_locres")
+        .arg(&locres_file)
+        .stdout(std::process::Stdio::piped())
+        .stderr(std::process::Stdio::piped());
+
+    let output = cmd.output().await.map_err(|e| e.to_string())?;
     let stdout = String::from_utf8_lossy(&output.stdout);
     let stderr = String::from_utf8_lossy(&output.stderr);
 
-    // Print stderr (diagnostic logs) to console
     if !stderr.is_empty() {
-        println!("[LocresReader] Debug output:\n{}", stderr);
+        println!("[LocresRead] parse_locres: {}", stderr);
     }
-
-    println!("[LocresReader] Stdout size: {} bytes", stdout.len());
 
     if !output.status.success() {
         return Err(format!(
-            "LocresReader failed with exit code {:?}\nStderr: {}",
+            "parse_locres failed with code {:?}\nStderr: {}",
             output.status.code(),
             stderr
         ));
     }
 
-    // Parse the JSON output
-    println!("[LocresReader] Attempting to parse JSON...");
-    println!(
-        "[LocresReader] First 200 chars of stdout: {}",
-        stdout.chars().take(200).collect::<String>()
-    );
+    println!("[LocresRead] Stdout size: {} bytes", stdout.len());
 
-    let locres_data: serde_json::Value = match serde_json::from_str(&stdout) {
-        Ok(data) => {
-            println!("[LocresReader] JSON parsing successful!");
-            data
-        }
-        Err(e) => {
-            println!("[LocresReader] JSON parsing FAILED: {}", e);
-            println!(
-                "[LocresReader] Last 200 chars of stdout: {}",
-                stdout
-                    .chars()
-                    .rev()
-                    .take(200)
-                    .collect::<String>()
-                    .chars()
-                    .rev()
-                    .collect::<String>()
-            );
-            return Err(format!("Failed to parse output: {}", e));
-        }
+    // Clean up extracted files
+    let _ = fs::remove_dir_all(&locres_temp);
+
+    let locres_data: serde_json::Value = serde_json::from_str(&stdout)
+        .map_err(|e| format!("Failed to parse locres JSON: {}", e))?;
+
+    println!("[LocresRead] Successfully loaded locres data");
+    Ok(locres_data)
+}
+
+/// Recursively search `dir` for a `Game.locres` file, preferring a parent
+/// directory whose name matches `language` exactly.
+fn find_locres_file(dir: &PathBuf, language: &str) -> Option<PathBuf> {
+    find_locres_walk(dir, language, true)
+        .or_else(|| find_locres_walk(dir, language, false))
+}
+
+fn find_locres_walk(dir: &PathBuf, language: &str, exact_lang: bool) -> Option<PathBuf> {
+    let Ok(entries) = fs::read_dir(dir) else {
+        return None;
     };
-
-    println!("[LocresReader] Successfully parsed locres JSON data");
-
-    // Show structure info
-    if let Some(obj) = locres_data.as_object() {
-        println!(
-            "[LocresReader] Top-level keys: {:?}",
-            obj.keys().collect::<Vec<_>>()
-        );
-        for (key, value) in obj.iter() {
-            if let Some(arr) = value.as_array() {
-                println!("[LocresReader]   - {}: {} entries", key, arr.len());
-            } else if let Some(inner_obj) = value.as_object() {
-                println!("[LocresReader]   - {}: {} keys", key, inner_obj.len());
+    for entry in entries.filter_map(|e| e.ok()) {
+        let path = entry.path();
+        if path.is_dir() {
+            if let Some(found) = find_locres_walk(&path, language, exact_lang) {
+                return Some(found);
+            }
+        } else if path.file_name().and_then(|n| n.to_str()) == Some("Game.locres") {
+            if exact_lang {
+                let parent = path
+                    .parent()
+                    .and_then(|p| p.file_name())
+                    .and_then(|n| n.to_str())
+                    .unwrap_or("");
+                if parent.eq_ignore_ascii_case(language) {
+                    return Some(path);
+                }
             } else {
-                println!("[LocresReader]   - {}: {:?}", key, value);
+                return Some(path);
             }
         }
     }
-
-    println!(
-        "[LocresReader] Data preview (first 500 chars):\n{}",
-        serde_json::to_string_pretty(&locres_data)
-            .unwrap_or_default()
-            .chars()
-            .take(500)
-            .collect::<String>()
-    );
-
-    Ok(locres_data)
+    None
 }
 
 /// Extract all StringTable assets from game paks using UAssetTool extract_iostore_legacy
