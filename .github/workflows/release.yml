@@ -74,6 +74,7 @@ jobs:
 
           # Copy external tools (spawned as separate processes at runtime)
           Copy-Item "UassetToolRivals/src/UAssetTool/bin/Release/net8.0/win-x64/publish/UAssetTool.exe" -Destination "$stagingDir/tools/"
+          Copy-Item "UassetToolRivals/src/UAssetTool/bin/Release/net8.0/win-x64/blake3_dotnet.dll" -Destination "$stagingDir/tools/"
 
           # Include documentation
           Copy-Item "CLI_USAGE.md" -Destination $stagingDir -ErrorAction SilentlyContinue
