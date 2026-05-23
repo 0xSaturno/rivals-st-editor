@@ -45,3 +45,13 @@ export interface DropCollision {
 export type SearchMode = 'keys' | 'values' | 'subtitles';
 
 export type LocresData = Record<string, Record<string, string>> | null;
+
+export interface UsmapStatus {
+    installed: boolean;
+    file_name: string | null;
+    file_path: string | null;
+    needs_update: boolean;
+    latest_remote: string | null;
+    auto_managed: boolean;
+}
+

@@ -1,28 +1,33 @@
 import { invoke } from '@tauri-apps/api/core';
 import { Settings } from '../types';
 
+
 interface SettingsModalProps {
     settings: Settings;
     isLoadingLocres: boolean;
     hasLoadedFiles: boolean;
+    isFetchingUsmap: boolean;
     onClose: () => void;
     onSelectUsmapFile: () => void;
     onSelectRivalsPakPath: () => void;
     onSettingsChange: (settings: Settings) => void;
     onLoadLocresData: () => Promise<void>;
     onClearLocresData: () => void;
+    onFetchLatestUsmap: () => Promise<void>;
 }
 
 export function SettingsModal({
     settings,
     isLoadingLocres,
     hasLoadedFiles,
+    isFetchingUsmap,
     onClose,
     onSelectUsmapFile,
     onSelectRivalsPakPath,
     onSettingsChange,
     onLoadLocresData,
     onClearLocresData,
+    onFetchLatestUsmap,
 }: SettingsModalProps) {
     const handleLocresLanguageChange = async (newLanguage: string) => {
         onSettingsChange({ ...settings, locresLanguage: newLanguage });
@@ -79,6 +84,14 @@ export function SettingsModal({
                         />
                         <button onClick={onSelectUsmapFile} className="btn btn-primary text-sm">Browse</button>
                     </div>
+                    <button
+                        onClick={onFetchLatestUsmap}
+                        disabled={isFetchingUsmap}
+                        className="btn btn-secondary text-sm w-full mt-2"
+                        style={{ border: '1px solid var(--bg-1)' }}
+                    >
+                        {isFetchingUsmap ? 'Fetching Latest Mappings...' : 'Pull Latest .usmap'}
+                    </button>
                 </div>
 
                 <div className="mb-6">

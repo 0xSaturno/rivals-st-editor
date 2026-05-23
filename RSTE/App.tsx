@@ -3,7 +3,7 @@ import { invoke } from '@tauri-apps/api/core';
 import { open as openDialog, save as saveDialog } from '@tauri-apps/plugin-dialog';
 import { readTextFile, writeTextFile } from '@tauri-apps/plugin-fs';
 
-import { FileData, Settings, DropCollision, SearchMode, LocresData, Entry } from './types';
+import { FileData, Settings, DropCollision, SearchMode, LocresData, Entry, UsmapStatus } from './types';
 import { processFileContent } from './utils/stringTable';
 import { stripExtension, computeDiffStats } from './utils/diff';
 import { useResetButton } from './hooks/useResetButton';
@@ -31,6 +31,8 @@ export function App() {
         enableBackup: true,
     });
     const [showSettings, setShowSettings] = useState(false);
+    const [usmapStatus, setUsmapStatus] = useState<UsmapStatus | null>(null);
+    const [isFetchingUsmap, setIsFetchingUsmap] = useState(false);
     const [searchQuery, setSearchQuery] = useState('');
     const [searchMode, setSearchMode] = useState<SearchMode>('keys');
     const [showPakNameInput, setShowPakNameInput] = useState(false);
@@ -63,7 +65,37 @@ export function App() {
         return () => document.removeEventListener('contextmenu', handleContextMenu);
     }, []);
 
-    // Load settings on mount
+    const checkUsmapStatus = useCallback(async () => {
+        try {
+            const status = await invoke<UsmapStatus>('check_usmap_status');
+            setUsmapStatus(status);
+            console.log(`[Usmap] Installed: ${status.installed}, update: ${status.needs_update}, file: ${status.file_name || 'none'}`);
+            return status;
+        } catch (err) {
+            console.error('[Usmap] Failed to check status:', err);
+            return null;
+        }
+    }, []);
+
+    const fetchLatestUsmap = useCallback(async () => {
+        setIsFetchingUsmap(true);
+        try {
+            console.log('[Usmap] Fetching latest mappings...');
+            const status = await invoke<UsmapStatus>('fetch_latest_usmap');
+            setUsmapStatus(status);
+            if (status.file_path) {
+                setSettings((prev) => ({ ...prev, usmapPath: status.file_path }));
+            }
+            console.log('[Usmap] Fetch success!', status.file_name);
+        } catch (err) {
+            console.error('[Usmap] Fetch failed:', err);
+            throw err;
+        } finally {
+            setIsFetchingUsmap(false);
+        }
+    }, []);
+
+    // Load settings and check/update usmap on mount
     useEffect(() => {
         invoke<Settings>('get_settings')
             .then((loadedSettings) => {
@@ -74,7 +106,31 @@ export function App() {
                 });
             })
             .catch(console.error);
-    }, []);
+
+        const initUsmap = async () => {
+            const status = await checkUsmapStatus();
+            if (status) {
+                if (!status.installed || status.needs_update) {
+                    console.log('[Usmap] Mappings missing or outdated, attempting auto-update...');
+                    try {
+                        setIsFetchingUsmap(true);
+                        const result = await invoke<UsmapStatus>('fetch_latest_usmap');
+                        setUsmapStatus(result);
+                        if (result.file_path) {
+                            setSettings((prev) => ({ ...prev, usmapPath: result.file_path }));
+                        }
+                        console.log(`[Usmap] Auto-updated successfully: ${result.file_name}`);
+                    } catch (fetchErr) {
+                        console.error(`[Usmap] Auto-update failed: ${fetchErr}`);
+                    } finally {
+                        setIsFetchingUsmap(false);
+                    }
+                }
+            }
+        };
+
+        initUsmap();
+    }, [checkUsmapStatus]);
 
     useEffect(() => {
         filesDataRef.current = filesData;
@@ -519,6 +575,8 @@ export function App() {
                     settings={settings}
                     isLoadingLocres={isLoadingLocres}
                     hasLoadedFiles={filesData.some((f) => f.uassetPath)}
+                    isFetchingUsmap={isFetchingUsmap}
+                    onFetchLatestUsmap={fetchLatestUsmap}
                     onClose={() => setShowSettings(false)}
                     onSelectUsmapFile={handleSelectUsmapFile}
                     onSelectRivalsPakPath={handleSelectRivalsPakPath}
@@ -543,6 +601,26 @@ export function App() {
             {error && (
                 <div className="bg-red-800 border border-red-600 text-white px-4 py-3 mb-6">
                     <strong>Error!</strong> {error}
+                </div>
+            )}
+
+            {usmapStatus && !usmapStatus.installed && !isFetchingUsmap && (
+                <div 
+                    className="px-4 py-3 mb-6 flex items-center justify-between text-sm" 
+                    style={{ 
+                        backgroundColor: 'var(--bg-3)', 
+                        borderLeft: '4px solid var(--accent-red, #a70f14)', 
+                        color: 'var(--text-2)',
+                        border: '1px solid var(--bg-2)',
+                    }}
+                >
+                    <span>No mapping (.usmap) file found. Auto-download failed - please check internet or set manually in Settings.</span>
+                    <button 
+                        onClick={() => setShowSettings(true)} 
+                        className="btn btn-primary text-xs py-1 px-3"
+                    >
+                        Open Settings
+                    </button>
                 </div>
             )}
 

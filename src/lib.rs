@@ -48,6 +48,23 @@ impl Default for AppSettings {
     }
 }
 
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct UsmapMeta {
+    pub file_name: String,
+    pub file_path: String,
+    pub fetched_at: String,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct UsmapStatus {
+    pub installed: bool,
+    pub file_name: Option<String>,
+    pub file_path: Option<String>,
+    pub needs_update: bool,
+    pub latest_remote: Option<String>,
+    pub auto_managed: bool,
+}
+
 #[derive(Debug, Serialize, Deserialize)]
 pub struct ConversionResult {
     pub success: bool,
@@ -77,6 +94,71 @@ pub fn get_temp_dir() -> PathBuf {
         .join("rivals-st-editor")
         .join("temp")
 }
+
+fn get_usmap_dir() -> PathBuf {
+    dirs::config_dir()
+        .unwrap_or_else(|| PathBuf::from("."))
+        .join("rivals-st-editor")
+        .join("mappings")
+}
+
+fn get_usmap_meta_path() -> PathBuf {
+    get_usmap_dir().join("latest.json")
+}
+
+async fn fetch_latest_usmap_filename() -> Result<String, String> {
+    let client = reqwest::Client::new();
+    let response = client
+        .get("https://api.github.com/repos/SpaceDepot/rivals-depot/contents/usmap")
+        .header("User-Agent", "rivals-st-editor")
+        .header("Accept", "application/vnd.github.v3+json")
+        .send()
+        .await
+        .map_err(|e| format!("Failed to fetch usmap listing: {}", e))?;
+
+    if !response.status().is_success() {
+        return Err(format!(
+            "GitHub API returned HTTP {}",
+            response.status()
+        ));
+    }
+
+    let entries: Vec<serde_json::Value> = response
+        .json()
+        .await
+        .map_err(|e| format!("Failed to parse GitHub API response: {}", e))?;
+
+    // Find the file with the highest build number
+    // Files look like: 5.3.2-3312577+++depot_marvel+S7.5_release-Marvel.usmap
+    // We extract the build number (e.g., 3312577) and pick the highest
+    let mut best: Option<(u64, String)> = None;
+
+    for entry in &entries {
+        if let Some(name) = entry.get("name").and_then(|v| v.as_str()) {
+            if !name.ends_with(".usmap") {
+                continue;
+            }
+            // Skip PY_ prefixed files (PlayTest/Preview builds)
+            if name.starts_with("PY_") {
+                continue;
+            }
+            // Extract build number: "5.3.2-{number}+++"
+            if let Some(after_dash) = name.strip_prefix("5.3.2-") {
+                if let Some(plus_idx) = after_dash.find("+++") {
+                    if let Ok(build_num) = after_dash[..plus_idx].parse::<u64>() {
+                        if best.as_ref().map_or(true, |(b, _)| build_num > *b) {
+                            best = Some((build_num, name.to_string()));
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    best.map(|(_, name)| name)
+        .ok_or_else(|| "No usmap files found in repository".to_string())
+}
+
 
 /// Generate a unique temp JSON path for a uasset file
 fn get_temp_json_path(uasset_path: &PathBuf) -> PathBuf {
@@ -792,6 +874,124 @@ async fn extract_string_tables(
     Ok(output_dir)
 }
 
+#[tauri::command]
+async fn check_usmap_status(state: State<'_, AppState>) -> Result<UsmapStatus, String> {
+    let settings_usmap = {
+        let settings = state.settings.lock().unwrap();
+        settings.usmap_path.clone()
+    };
+
+    let meta_path = get_usmap_meta_path();
+    let meta: Option<UsmapMeta> = if meta_path.exists() {
+        fs::read_to_string(&meta_path)
+            .ok()
+            .and_then(|s| serde_json::from_str(&s).ok())
+    } else {
+        None
+    };
+
+    // Determine if current usmap is auto-managed (lives in our managed dir)
+    let managed_dir = get_usmap_dir();
+    let auto_managed = settings_usmap
+        .as_ref()
+        .map(|p| std::path::Path::new(p).starts_with(&managed_dir))
+        .unwrap_or(false);
+
+    // Check if usmap file actually exists
+    let installed = settings_usmap
+        .as_ref()
+        .map(|p| std::path::Path::new(p).exists())
+        .unwrap_or(false);
+
+    // Try to fetch latest remote filename
+    let latest_remote = fetch_latest_usmap_filename().await.ok();
+
+    let needs_update = if let (Some(ref remote), Some(ref m)) = (&latest_remote, &meta) {
+        *remote != m.file_name
+    } else if latest_remote.is_some() && meta.is_none() {
+        true
+    } else {
+        false
+    };
+
+    Ok(UsmapStatus {
+        installed,
+        file_name: meta.as_ref().map(|m| m.file_name.clone()).or_else(|| {
+            settings_usmap.as_ref().and_then(|p| {
+                std::path::Path::new(p).file_name().map(|f| f.to_string_lossy().to_string())
+            })
+        }),
+        file_path: settings_usmap,
+        needs_update,
+        latest_remote,
+        auto_managed,
+    })
+}
+
+#[tauri::command]
+async fn fetch_latest_usmap(state: State<'_, AppState>) -> Result<UsmapStatus, String> {
+    let file_name = fetch_latest_usmap_filename().await?;
+    let download_url = format!(
+        "https://raw.githubusercontent.com/SpaceDepot/rivals-depot/main/usmap/{}",
+        file_name
+    );
+
+    println!("[DEBUG] Downloading usmap: {}", download_url);
+
+    let response = reqwest::get(&download_url)
+        .await
+        .map_err(|e| format!("Failed to download usmap: {}", e))?;
+
+    if !response.status().is_success() {
+        return Err(format!(
+            "Failed to download usmap: HTTP {}",
+            response.status()
+        ));
+    }
+
+    let bytes = response
+        .bytes()
+        .await
+        .map_err(|e| format!("Failed to read usmap data: {}", e))?;
+
+    let usmap_dir = get_usmap_dir();
+    fs::create_dir_all(&usmap_dir).map_err(|e| format!("Failed to create mappings dir: {}", e))?;
+
+    let usmap_path = usmap_dir.join(&file_name);
+    fs::write(&usmap_path, &bytes).map_err(|e| format!("Failed to write usmap file: {}", e))?;
+
+    // Save metadata
+    let meta = UsmapMeta {
+        file_name: file_name.clone(),
+        file_path: usmap_path.to_string_lossy().to_string(),
+        fetched_at: chrono::Utc::now().to_rfc3339(),
+    };
+    let meta_json =
+        serde_json::to_string_pretty(&meta).map_err(|e| format!("Failed to serialize meta: {}", e))?;
+    fs::write(get_usmap_meta_path(), meta_json)
+        .map_err(|e| format!("Failed to write meta file: {}", e))?;
+
+    // Update app settings to point to the new usmap
+    let usmap_path_str = usmap_path.to_string_lossy().to_string();
+    {
+        let mut settings = state.settings.lock().unwrap();
+        settings.usmap_path = Some(usmap_path_str.clone());
+        save_settings(&settings).map_err(|e| format!("Failed to save settings: {}", e))?;
+    }
+
+    println!("[DEBUG] Usmap installed: {} -> {:?}", file_name, usmap_path);
+
+    Ok(UsmapStatus {
+        installed: true,
+        file_name: Some(file_name),
+        file_path: Some(usmap_path_str),
+        needs_update: false,
+        latest_remote: None,
+        auto_managed: true,
+    })
+}
+
+
 // ============================================================================
 // APP INITIALIZATION
 // ============================================================================
@@ -822,6 +1022,8 @@ pub fn run() {
             get_temp_json_path_for_uasset,
             read_locres_data,
             extract_string_tables,
+            check_usmap_status,
+            fetch_latest_usmap,
         ])
         .build(tauri::generate_context!())
         .expect("error while building tauri application")
